@@ -3,7 +3,7 @@ exports.getPlaceholderStringForArray = (arr) => {
         throw new Error('Invalid input');
     }
 
-    // if is array, we'll clone the arr 
+    // if is array, we'll clone the arr
     // and fill the new array with placeholders
     const placeholders = [...arr];
     return placeholders.fill('?').join(', ').trim();
@@ -24,4 +24,11 @@ exports.multipleColumnSet = (object) => {
         columnSet,
         values
     }
+}
+exports.resultSet = (success,data ,message )=> {
+    return {status:success ? 'ok' : '' ,success:success,message:message, ...data };
+}
+
+exports.resultListSet = (success,data ,message )=> {
+    return {status:success ? 'ok' : '' ,success:success,message:message, ...data };
 }

@@ -3,11 +3,7 @@ const Role = require('../../utils/userRoles.utils');
 
 
 exports.createUserSchema = [
-    body('username')
-        .exists()
-        .withMessage('username is required')
-        .isLength({ min: 3 })
-        .withMessage('Must be at least 3 chars long'),
+
     body('first_name')
         .exists()
         .withMessage('Your first name is required')
@@ -28,26 +24,20 @@ exports.createUserSchema = [
         .isEmail()
         .withMessage('Must be a valid email')
         .normalizeEmail(),
-    body('role')
-        .optional()
-        .isIn([Role.Admin, Role.SuperUser])
-        .withMessage('Invalid Role type'),
+
     body('password')
         .exists()
         .withMessage('Password is required')
         .notEmpty()
-        .isLength({ min: 6 })
+        .isLength({ min: 8 })
         .withMessage('Password must contain at least 6 characters')
-        .isLength({ max: 10 })
-        .withMessage('Password can contain max 10 characters'),
+        .isLength({ max: 14 })
+        .withMessage('Password can contain max 14 characters'),
     body('confirm_password')
         .exists()
         .custom((value, { req }) => value === req.body.password)
         .withMessage('confirm_password field must have the same value as the password field'),
-    body('age')
-        .optional()
-        .isNumeric()
-        .withMessage('Must be a number')
+
 ];
 
 exports.updateUserSchema = [

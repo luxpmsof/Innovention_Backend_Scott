@@ -1,4 +1,4 @@
-const UserModel = require('../models/user.model');
+const ItemModel = require('../models/item.model');
 const HttpException = require('../utils/HttpException.utils');
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
@@ -6,33 +6,119 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const {resultSet} = require("../utils/common.utils");
 dotenv.config();
-const bson = require('bson');
+
 /******************************************************************************
  *                              User Controller
  ******************************************************************************/
-class UserController {
-    getAllUsers = async (req, res, next) => {
-        let userList = await UserModel.find();
+class ItemController {
+    getAllGroups = async (req, res, next) => {
+        const params = {bid:req.bid};
+        let userList = await ItemModel.findItemGroup(params);
+
+        /**
+        userList = userList.map(user => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
+**/
+        //res.send(userList);
+        const data = {data:userList};
+        res.send(resultSet(true, {...data},'success'));
+    };
+
+    creatGroup = async (req, res, next) => {
+        const {description,unit_cd,currency_cd,item_group_cd,item_group_nm,unit_adjust,unit_cost} =req.body;
+
+
+
+        const result = await ItemModel.createItemGroup(description,unit_cd,currency_cd,item_group_cd,item_group_nm,unit_adjust,unit_cost,req.bid);
+        if (!result) {
+            throw new HttpException(500, 'Something went wrong',resultSet(false,{},'Something went wrong'));
+        }
+
+        res.status(201).send(resultSet(true,{},'success'));
+    };
+
+    getAllItems = async (req, res, next) => {
+        const {pageSize,gid} = req.query;
+        console.log('req',req.bid);
+
+        let userList = await ItemModel.findItem({...req.query,bid:req.bid});
+       /**
         if (!userList.length) {
             throw new HttpException(404, 'Users not found');
         }
+        **/
 
         userList = userList.map(user => {
             const { password, ...userWithoutPassword } = user;
             return userWithoutPassword;
         });
-        const data = {
-            data : userList,
-            current:1,
-            pageSize:'20',
-            total: userList.length
 
+        //res.send(userList);
+        const data = {data:userList};
+        res.send(resultSet(true, {...data},'success'));
+    };
+    creatItem = async (req, res, next) => {
+
+        const {gid,description,unit_cd,currency_cd,item_cd,item_nm,unit_adjust,unit_cost,color,weight,material,size} =req.body;
+
+        const result = await ItemModel.createItem(gid,description,unit_cd,currency_cd,item_cd,item_nm,unit_adjust,unit_cost,color,weight,material,size,req.bid);
+        if (result === -1) {
+            res.status(201).send(resultSet(false,{},'fail'));
+        } else {
+            res.status(201).send(resultSet(true,{},'success'));
         }
-        res.send(resultSet(true,{...data},'ok'));
+
     };
 
+    getBalance = async (req, res, next) => {
+        const {pageSize,gid} = req.query;
+
+        let userList = await ItemModel.findBalance({...req.query,bid:req.bid});
+        /**
+         if (!userList.length) {
+            throw new HttpException(404, 'Users not found');
+        }
+         **/
+
+        userList = userList.map(user => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
+
+        //res.send(userList);
+        const data = {data:userList};
+        res.send(resultSet(true, {...data},'success'));
+    };
+
+
+    plus = async (req, res, next) => {
+
+
+        const result = await ItemModel.plus(req.body);
+        if (!result) {
+            res.status(201).send(resultSet(false,{},'fail'));
+        }else {
+            res.status(201).send(resultSet(true,{},'success'));
+        }
+
+    };
+
+    minus = async (req, res, next) => {
+
+        const result = await ItemModel.minus(req.body);
+        if (!result) {
+            res.status(201).send(resultSet(false,{},'fail'));
+        }else {
+            res.status(201).send(resultSet(true,{},'success'));
+        }
+    };
+
+
+
     getUserById = async (req, res, next) => {
-        const user = await UserModel.findOne({ id: req.params.id });
+        const user = await OperatorModel.findOne({ id: req.params.id });
         if (!user) {
             throw new HttpException(404, 'User not found');
         }
@@ -43,7 +129,7 @@ class UserController {
     };
 
     getUserByuserName = async (req, res, next) => {
-        const user = await UserModel.findOne({ username: req.params.username });
+        const user = await OperatorModel.findOne({ username: req.params.username });
         if (!user) {
             throw new HttpException(404, 'User not found');
         }
@@ -63,8 +149,8 @@ class UserController {
         this.checkValidation(req);
 
         await this.hashPassword(req);
-        req._id = new bson.ObjectId();
-        const result = await UserModel.create(req.body);
+
+        const result = await OperatorModel.create(req.body);
 
         if (!result) {
             throw new HttpException(500, 'Something went wrong',resultSet(false,{},'Something went wrong'));
@@ -82,7 +168,7 @@ class UserController {
 
         // do the update query and get the result
         // it can be partial edit
-        const result = await UserModel.update(restOfUpdates, req.params.id);
+        const result = await OperatorModel.update(restOfUpdates, req.params.id);
 
         if (!result) {
             throw new HttpException(404, 'Something went wrong');
@@ -97,7 +183,7 @@ class UserController {
     };
 
     deleteUser = async (req, res, next) => {
-        const result = await UserModel.delete(req.params.id);
+        const result = await OperatorModel.delete(req.params.id);
         if (!result) {
             throw new HttpException(404, 'User not found');
         }
@@ -108,8 +194,8 @@ class UserController {
         this.checkValidation(req);
 
         const { email, password: pass } = req.body;
-        console.log("userLogin",email)
-        const user = await UserModel.findOne({ email });
+
+        const user = await OperatorModel.findOne({ email });
 
         if (!user) {
             throw new HttpException(401, 'Unable to login!');
@@ -123,22 +209,13 @@ class UserController {
 
         // user matched!
         const secretKey = process.env.SECRET_JWT || "";
-        const role = user.role === 'admin' ? ['admin','master'] : user.role;
-        const token = jwt.sign({
-            user_id: user.uid.toString(),
-            _id: user._id.toString(),
-            role:role,
-            type:role,
-            organizationId:user.bid.toString(),
-            username:user.first_nm + " " + user.last_nm
-        }, secretKey, {
+        const token = jwt.sign({ user_id: user.id.toString() }, secretKey, {
             expiresIn: '24h'
         });
 
         const { password,role:currentAuthority } = user;
-        const data = { token :token,role}
 
-        res.send(resultSet(true,{  token,currentAuthority ,data},'success'));
+        res.send(resultSet(true,{  token,currentAuthority },'success'));
     };
 
     checkValidation = (req) => {
@@ -161,4 +238,4 @@ class UserController {
 /******************************************************************************
  *                               Export
  ******************************************************************************/
-module.exports = new UserController;
+module.exports = new ItemController;
